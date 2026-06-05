@@ -1,8 +1,13 @@
 const pool = require('../db');
+const cache = require('../db/cache');
 const propiedadCtrl = {};
 
 propiedadCtrl.getPropiedades = async (req, res, next) => {
     try {
+        const cacheKey = cache.key(`list:${JSON.stringify(req.query)}`);
+        const cached = await cache.get(cacheKey);
+        if (cached) return res.json(cached);
+
         const { page = 1, limit = 10, precio_min, precio_max, estado, search } = req.query;
 
         const conditions = [];
@@ -43,7 +48,7 @@ propiedadCtrl.getPropiedades = async (req, res, next) => {
                        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
         const result = await pool.query(query, [...params, limitNum, offset]);
 
-        res.json({
+        const response = {
             status: '1',
             msg: 'Propiedades obtenidas correctamente',
             data: {
@@ -53,7 +58,10 @@ propiedadCtrl.getPropiedades = async (req, res, next) => {
                 limit: limitNum,
                 totalPages: Math.ceil(total / limitNum)
             }
-        });
+        };
+
+        await cache.set(cacheKey, response);
+        res.json(response);
     } catch (error) {
         next(error);
     }
@@ -62,6 +70,10 @@ propiedadCtrl.getPropiedades = async (req, res, next) => {
 propiedadCtrl.getPropiedad = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const cacheKey = cache.key(`id:${id}`);
+        const cached = await cache.get(cacheKey);
+        if (cached) return res.json(cached);
+
         const result = await pool.query(
             `SELECT p.*, i.nombre as inmobiliaria_nombre, i.direccion as inmobiliaria_direccion
              FROM Propiedad p
@@ -74,7 +86,9 @@ propiedadCtrl.getPropiedad = async (req, res, next) => {
             return res.status(404).json({ status: '0', msg: 'Propiedad no encontrada' });
         }
 
-        res.json({ status: '1', msg: 'Propiedad encontrada', data: result.rows[0] });
+        const response = { status: '1', msg: 'Propiedad encontrada', data: result.rows[0] };
+        await cache.set(cacheKey, response);
+        res.json(response);
     } catch (error) {
         next(error);
     }
@@ -90,6 +104,7 @@ propiedadCtrl.createPropiedad = async (req, res, next) => {
             [titulo, precio, estado, inmobiliaria_id || null]
         );
 
+        await cache.invalidateAll();
         res.json({ status: '1', msg: 'Propiedad creada exitosamente', data: result.rows[0] });
     } catch (error) {
         next(error);
@@ -125,6 +140,7 @@ propiedadCtrl.updatePropiedad = async (req, res, next) => {
             params
         );
 
+        await cache.invalidateAll();
         res.json({ status: '1', msg: 'Propiedad actualizada', data: result.rows[0] });
     } catch (error) {
         next(error);
@@ -152,6 +168,7 @@ propiedadCtrl.deletePropiedad = async (req, res, next) => {
         }
 
         await pool.query('DELETE FROM Propiedad WHERE id = $1', [id]);
+        await cache.invalidateAll();
         res.json({ status: '1', msg: 'Propiedad eliminada correctamente' });
     } catch (error) {
         next(error);

@@ -1,17 +1,21 @@
-const express = require('express'); // Framework para construir la API
-const cors = require('cors'); // Middleware para habilitar CORS (Cross-Origin Resource Sharing)
-const helmet = require('helmet'); // Middleware para mejorar la seguridad de la aplicación configurando cabeceras HTTP
-const rateLimit = require('express-rate-limit'); // Middleware para limitar la cantidad de solicitudes que un cliente puede hacer en un período de tiempo determinado (protección contra ataques de denegación de servicio)
-require('dotenv').config(); // Carga variables de entorno desde un archivo .env, lo que permite configurar la aplicación sin modificar el código fuente (por ejemplo, para establecer la URL de la base de datos o la clave secreta)
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
+
+require('./db/cache');
 
 const app = express();
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 200,
     message: { status: '0', msg: 'Demasiadas solicitudes, intente de nuevo en 15 minutos' }
 });
 
+app.use(compression());
 app.use(helmet());
 app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',

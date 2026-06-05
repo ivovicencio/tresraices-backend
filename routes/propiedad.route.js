@@ -8,7 +8,11 @@ const propiedadSchema = {
     titulo: { required: true, type: 'string', minLength: 3 },
     precio: { required: true, type: 'number', min: 0 },
     estado: { required: true, enum: ['Disponible', 'Reservado', 'Vendido'] },
-    inmobiliaria_id: { type: 'number', min: 1 }
+    inmobiliaria_id: { type: 'number', min: 1 },
+    superficie: { type: 'number', min: 0 },
+    ubicacion: { type: 'string' },
+    manzana: { type: 'string' },
+    lote_num: { type: 'string' }
 };
 
 router.get('/', propiedadCtrl.getPropiedades);

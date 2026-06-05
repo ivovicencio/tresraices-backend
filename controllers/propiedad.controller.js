@@ -96,12 +96,12 @@ propiedadCtrl.getPropiedad = async (req, res, next) => {
 
 propiedadCtrl.createPropiedad = async (req, res, next) => {
     try {
-        const { titulo, precio, estado, inmobiliaria_id } = req.body;
+        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num } = req.body;
 
         const result = await pool.query(
-            `INSERT INTO Propiedad (titulo, precio, estado, inmobiliaria_id)
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [titulo, precio, estado, inmobiliaria_id || null]
+            `INSERT INTO Propiedad (titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [titulo, precio, estado, inmobiliaria_id || null, superficie || null, ubicacion || null, manzana || null, lote_num || null]
         );
 
         await cache.invalidateAll();
@@ -114,7 +114,7 @@ propiedadCtrl.createPropiedad = async (req, res, next) => {
 propiedadCtrl.updatePropiedad = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { titulo, precio, estado, inmobiliaria_id } = req.body;
+        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num } = req.body;
 
         const existing = await pool.query('SELECT id FROM Propiedad WHERE id = $1', [id]);
         if (existing.rows.length === 0) {
@@ -129,6 +129,10 @@ propiedadCtrl.updatePropiedad = async (req, res, next) => {
         if (precio !== undefined) { fields.push(`precio = $${paramIndex++}`); params.push(precio); }
         if (estado !== undefined) { fields.push(`estado = $${paramIndex++}`); params.push(estado); }
         if (inmobiliaria_id !== undefined) { fields.push(`inmobiliaria_id = $${paramIndex++}`); params.push(inmobiliaria_id); }
+        if (superficie !== undefined) { fields.push(`superficie = $${paramIndex++}`); params.push(superficie); }
+        if (ubicacion !== undefined) { fields.push(`ubicacion = $${paramIndex++}`); params.push(ubicacion); }
+        if (manzana !== undefined) { fields.push(`manzana = $${paramIndex++}`); params.push(manzana); }
+        if (lote_num !== undefined) { fields.push(`lote_num = $${paramIndex++}`); params.push(lote_num); }
 
         if (fields.length === 0) {
             return res.status(400).json({ status: '0', msg: 'No hay campos para actualizar' });

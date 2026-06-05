@@ -6,7 +6,15 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    maxUses: 7500
+});
+
+pool.on('error', (err) => {
+    console.error('Error inesperado en el pool de PostgreSQL:', err);
 });
 
 pool.connect()

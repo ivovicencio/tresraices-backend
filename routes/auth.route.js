@@ -20,7 +20,7 @@ const registerSchema = {
 };
 
 const loginSchema = {
-    email: { required: true, type: 'email' },
+    email: { required: true, type: 'string' },
     password: { required: true, type: 'string' }
 };
 

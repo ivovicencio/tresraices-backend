@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-    // Obtenemos el token del header de la petición (del frontend de Angular)
     const token = req.headers['x-access-token'] || req.headers['authorization'];
 
     if (!token) {
@@ -9,12 +8,11 @@ const verifyToken = (req, res, next) => {
     }
 
     try {
-        // Si el token viene como "Bearer <token>", lo limpiamos
         const cleanToken = token.startsWith('Bearer ') ? token.slice(7, token.length) : token;
-        
         const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
-        req.userId = decoded.id; // Guardamos el ID del usuario para usarlo después
-        next(); // Lo dejamos pasar a la ruta
+        req.userId = decoded.id;
+        req.role = 'admin'; // Rol para RLS
+        next();
     } catch (error) {
         return res.status(401).json({ status: '0', msg: 'Token no válido o expirado.' });
     }

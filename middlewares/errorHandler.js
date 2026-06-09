@@ -11,10 +11,10 @@ const errorHandler = (err, req, res, next) => {
         return res.status(400).json({ status: '0', msg: 'Tipo de dato inválido en la consulta' });
     }
 
-    res.status(err.status || 500).json({
-        status: '0',
-        msg: err.message || 'Error interno del servidor'
-    });
+    const status = err.status || 500;
+    const message = status === 500 ? 'Error interno del servidor' : err.message;
+
+    res.status(status).json({ status: '0', msg: message });
 };
 
 module.exports = errorHandler;

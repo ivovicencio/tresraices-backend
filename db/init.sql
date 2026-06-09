@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS Propiedad (
     estado VARCHAR(20) NOT NULL DEFAULT 'Disponible'
         CHECK (estado IN ('Disponible', 'Reservado', 'Vendido')),
     inmobiliaria_id INTEGER REFERENCES Inmobiliaria(id) ON DELETE SET NULL,
+    superficie DECIMAL(10, 2),
+    ubicacion VARCHAR(255),
+    manzana VARCHAR(50),
+    lote_num VARCHAR(50),
+    points TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -45,3 +50,13 @@ CREATE INDEX IF NOT EXISTS idx_solicitud_propiedad ON SolicitudVisita(propiedad_
 INSERT INTO Inmobiliaria (nombre, direccion) VALUES
     ('Tres Raíces Propiedades', 'Av. Principal 123, Ciudad')
 ON CONFLICT DO NOTHING;
+
+-- Migraciones para tablas existentes
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='propiedad' AND column_name='points') THEN
+        ALTER TABLE Propiedad ADD COLUMN points TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='propiedad' AND column_name='descripcion') THEN
+        ALTER TABLE Propiedad ADD COLUMN descripcion TEXT;
+    END IF;
+END $$;

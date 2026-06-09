@@ -12,7 +12,9 @@ const propiedadSchema = {
     superficie: { type: 'number', min: 0 },
     ubicacion: { type: 'string' },
     manzana: { type: 'string' },
-    lote_num: { type: 'string' }
+    lote_num: { type: 'string' },
+    descripcion: { type: 'string' },
+    points: { type: 'string' }
 };
 
 router.get('/', propiedadCtrl.getPropiedades);

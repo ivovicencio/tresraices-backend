@@ -1,4 +1,4 @@
-const pool = require('../db');
+const { executeQuery, pool } = require('../db');
 const cache = require('../db/cache');
 const propiedadCtrl = {};
 
@@ -96,12 +96,13 @@ propiedadCtrl.getPropiedad = async (req, res, next) => {
 
 propiedadCtrl.createPropiedad = async (req, res, next) => {
     try {
-        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num } = req.body;
+        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num, descripcion, points } = req.body;
 
-        const result = await pool.query(
-            `INSERT INTO Propiedad (titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [titulo, precio, estado, inmobiliaria_id || null, superficie || null, ubicacion || null, manzana || null, lote_num || null]
+        const result = await executeQuery(
+            `INSERT INTO Propiedad (titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num, descripcion, points)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [titulo, precio, estado, inmobiliaria_id || null, superficie || null, ubicacion || null, manzana || null, lote_num || null, descripcion || null, points || null],
+            { role: req.role, userId: req.userId }
         );
 
         await cache.invalidateAll();
@@ -114,9 +115,12 @@ propiedadCtrl.createPropiedad = async (req, res, next) => {
 propiedadCtrl.updatePropiedad = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num } = req.body;
+        const { titulo, precio, estado, inmobiliaria_id, superficie, ubicacion, manzana, lote_num, descripcion, points } = req.body;
 
-        const existing = await pool.query('SELECT id FROM Propiedad WHERE id = $1', [id]);
+        const existing = await executeQuery(
+            'SELECT id FROM Propiedad WHERE id = $1', [id],
+            { role: req.role, userId: req.userId }
+        );
         if (existing.rows.length === 0) {
             return res.status(404).json({ status: '0', msg: 'Propiedad no encontrada' });
         }
@@ -133,15 +137,18 @@ propiedadCtrl.updatePropiedad = async (req, res, next) => {
         if (ubicacion !== undefined) { fields.push(`ubicacion = $${paramIndex++}`); params.push(ubicacion); }
         if (manzana !== undefined) { fields.push(`manzana = $${paramIndex++}`); params.push(manzana); }
         if (lote_num !== undefined) { fields.push(`lote_num = $${paramIndex++}`); params.push(lote_num); }
+        if (descripcion !== undefined) { fields.push(`descripcion = $${paramIndex++}`); params.push(descripcion); }
+        if (points !== undefined) { fields.push(`points = $${paramIndex++}`); params.push(points); }
 
         if (fields.length === 0) {
             return res.status(400).json({ status: '0', msg: 'No hay campos para actualizar' });
         }
 
         params.push(id);
-        const result = await pool.query(
+        const result = await executeQuery(
             `UPDATE Propiedad SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-            params
+            params,
+            { role: req.role, userId: req.userId }
         );
 
         await cache.invalidateAll();
@@ -155,14 +162,18 @@ propiedadCtrl.deletePropiedad = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const existing = await pool.query('SELECT id FROM Propiedad WHERE id = $1', [id]);
+        const existing = await executeQuery(
+            'SELECT id FROM Propiedad WHERE id = $1', [id],
+            { role: req.role, userId: req.userId }
+        );
         if (existing.rows.length === 0) {
             return res.status(404).json({ status: '0', msg: 'Propiedad no encontrada' });
         }
 
-        const refs = await pool.query(
+        const refs = await executeQuery(
             'SELECT COUNT(*) FROM SolicitudVisita WHERE propiedad_id = $1',
-            [id]
+            [id],
+            { role: req.role, userId: req.userId }
         );
         if (parseInt(refs.rows[0].count) > 0) {
             return res.status(409).json({
@@ -171,7 +182,10 @@ propiedadCtrl.deletePropiedad = async (req, res, next) => {
             });
         }
 
-        await pool.query('DELETE FROM Propiedad WHERE id = $1', [id]);
+        await executeQuery(
+            'DELETE FROM Propiedad WHERE id = $1', [id],
+            { role: req.role, userId: req.userId }
+        );
         await cache.invalidateAll();
         res.json({ status: '1', msg: 'Propiedad eliminada correctamente' });
     } catch (error) {

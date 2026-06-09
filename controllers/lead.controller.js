@@ -1,4 +1,4 @@
-const pool = require('../db');
+const { executeQuery, pool } = require('../db');
 const bcrypt = require('bcryptjs');
 const leadCtrl = {};
 
@@ -61,8 +61,9 @@ leadCtrl.getLeads = async (req, res, next) => {
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-        const countResult = await pool.query(
-            `SELECT COUNT(*) FROM SolicitudVisita sv ${whereClause}`, params
+        const countResult = await executeQuery(
+            `SELECT COUNT(*) FROM SolicitudVisita sv ${whereClause}`, params,
+            { role: req.role, userId: req.userId }
         );
         const total = parseInt(countResult.rows[0].count);
 
@@ -83,7 +84,9 @@ leadCtrl.getLeads = async (req, res, next) => {
             ORDER BY sv.id DESC
             LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
         `;
-        const result = await pool.query(query, [...params, limitNum, offset]);
+        const result = await executeQuery(query, [...params, limitNum, offset],
+            { role: req.role, userId: req.userId }
+        );
 
         res.json({
             status: '1',
@@ -106,14 +109,18 @@ leadCtrl.updateLeadStatus = async (req, res, next) => {
         const { id } = req.params;
         const { estado } = req.body;
 
-        const existing = await pool.query('SELECT id FROM SolicitudVisita WHERE id = $1', [id]);
+        const existing = await executeQuery(
+            'SELECT id FROM SolicitudVisita WHERE id = $1', [id],
+            { role: req.role, userId: req.userId }
+        );
         if (existing.rows.length === 0) {
             return res.status(404).json({ status: '0', msg: 'Solicitud de visita no encontrada' });
         }
 
-        const result = await pool.query(
+        const result = await executeQuery(
             'UPDATE SolicitudVisita SET estado = $1 WHERE id = $2 RETURNING *',
-            [estado, id]
+            [estado, id],
+            { role: req.role, userId: req.userId }
         );
 
         res.json({ status: '1', msg: 'Estado actualizado correctamente', data: result.rows[0] });

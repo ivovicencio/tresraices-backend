@@ -7,9 +7,9 @@ async function executeQuery(text, params, options = {}) {
     const userId = options.userId || '';
 
     await client.query('BEGIN');
-    await client.query(`SET LOCAL app.role = '${role}'`);
+    await client.query('SET LOCAL app.role = $1', [role]);
     if (userId) {
-      await client.query(`SET LOCAL app.user_id = '${userId}'`);
+      await client.query('SET LOCAL app.user_id = $1', [userId]);
     }
     const result = await client.query(text, params);
     await client.query('COMMIT');

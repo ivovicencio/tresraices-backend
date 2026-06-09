@@ -9,12 +9,13 @@ const pool = require('./db');
 const cache = require('./db/cache');
 
 // ── Validación de variables de entorno al arranque ──
-const REQUIRED_ENV = ['JWT_SECRET', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
-for (const key of REQUIRED_ENV) {
-    if (!process.env[key]) {
-        console.error(`Falta variable de entorno: ${key}`);
-        process.exit(1);
-    }
+if (!process.env.JWT_SECRET) {
+    console.error('Falta variable de entorno: JWT_SECRET');
+    process.exit(1);
+}
+if (!process.env.DATABASE_URL && (!process.env.DB_USER || !process.env.DB_PASSWORD || !process.env.DB_NAME)) {
+    console.error('Falta configuración de DB: definir DATABASE_URL o DB_USER + DB_PASSWORD + DB_NAME');
+    process.exit(1);
 }
 
 const app = express();
@@ -45,7 +46,9 @@ app.use(helmet({
     },
     crossOriginOpenerPolicy: { policy: 'same-origin' },
     referrerPolicy: { policy: 'no-referrer' },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    hsts: process.env.NODE_ENV === 'production'
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : { maxAge: 0 },
 }));
 
 // ── CORS ──
@@ -92,6 +95,11 @@ const server = app.listen(PORT, () => {
 const gracefulShutdown = async (signal) => {
     console.log(`\n[${signal}] Cerrando servidor gracefully...`);
     server.close(async () => {
+        try {
+            await cache.close();
+        } catch (err) {
+            console.error('Error cerrando Redis:', err.message);
+        }
         try {
             await pool.end();
             console.log('Conexiones a PostgreSQL cerradas');

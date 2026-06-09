@@ -45,7 +45,18 @@ const cache = {
 
   async invalidateAll() { await this.del('prop:*'); },
 
-  key(path) { return `prop:${path}`; }
+  key(path) { return `prop:${path}`; },
+
+  async close() {
+    if (redisClient) {
+      try {
+        await redisClient.quit();
+        console.log('[CACHE] Conexión Redis cerrada');
+      } catch (err) {
+        console.error('[CACHE] Error cerrando Redis:', err.message);
+      }
+    }
+  }
 };
 
 (async () => {

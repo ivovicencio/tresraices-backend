@@ -7,7 +7,7 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const authCtrl = {};
 
 authCtrl.register = async (req, res) => {
-    const { nombre, telefono, email, password } = req.body;
+    const { username, nombre, apellido, telefono, email, password } = req.body;
 
     try {
         if (!PASSWORD_REGEX.test(password)) {
@@ -21,18 +21,19 @@ authCtrl.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const result = await pool.query(
-            'INSERT INTO Cliente (nombre, telefono, email, password) VALUES ($1, $2, $3, $4) RETURNING id',
-            [nombre.trim(), telefono.trim(), email.toLowerCase().trim(), hashedPassword]
+            'INSERT INTO Cliente (username, nombre, apellido, telefono, email, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [username.trim().toLowerCase(), nombre.trim(), apellido.trim(), telefono.trim(), email.toLowerCase().trim(), hashedPassword]
         );
 
-        const token = jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: result.rows[0].id, username: username.trim().toLowerCase() }, process.env.JWT_SECRET, {
             expiresIn: 86400
         });
 
         res.json({ status: '1', msg: 'Usuario registrado exitosamente', token });
     } catch (error) {
         if (error.code === '23505') {
-            return res.status(409).json({ status: '0', msg: 'El email ya está registrado' });
+            const field = error.constraint?.includes('username') ? 'nombre de usuario' : 'email';
+            return res.status(409).json({ status: '0', msg: `El ${field} ya está registrado` });
         }
         console.error('[REGISTER ERROR]', error.message);
         res.status(400).json({ status: '0', msg: 'Error al registrar el usuario' });
@@ -43,11 +44,14 @@ authCtrl.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const result = await pool.query('SELECT * FROM Cliente WHERE email = $1', [email.toLowerCase().trim()]);
+        const result = await pool.query(
+            'SELECT * FROM Cliente WHERE email = $1 OR username = $1',
+            [email.toLowerCase().trim()]
+        );
 
         if (result.rows.length === 0) {
-            console.warn(`[LOGIN FAIL] Email no registrado: ${email}`);
-            return res.status(401).json({ status: '0', msg: 'Email o contraseña incorrectos' });
+            console.warn(`[LOGIN FAIL] Usuario/email no registrado: ${email}`);
+            return res.status(401).json({ status: '0', msg: 'Usuario o contraseña incorrectos' });
         }
 
         const user = result.rows[0];
@@ -55,10 +59,10 @@ authCtrl.login = async (req, res) => {
         const passwordIsValid = await bcrypt.compare(password, user.password);
         if (!passwordIsValid) {
             console.warn(`[LOGIN FAIL] Contraseña incorrecta para: ${email}`);
-            return res.status(401).json({ status: '0', msg: 'Email o contraseña incorrectos' });
+            return res.status(401).json({ status: '0', msg: 'Usuario o contraseña incorrectos' });
         }
 
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
             expiresIn: 86400
         });
 

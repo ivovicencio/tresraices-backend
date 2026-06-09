@@ -12,9 +12,10 @@ leadCtrl.createLead = async (req, res, next) => {
         if (clientResult.rows.length === 0) {
             const salt = await bcrypt.genSalt(10);
             const tempPassword = await bcrypt.hash(Date.now().toString(), salt);
+            const generatedUsername = email.split('@')[0] + '_' + Date.now().toString(36);
             const newClient = await pool.query(
-                'INSERT INTO Cliente (nombre, telefono, email, password) VALUES ($1, $2, $3, $4) RETURNING id',
-                [nombre, telefono, email, tempPassword]
+                'INSERT INTO Cliente (username, nombre, apellido, telefono, email, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                [generatedUsername, nombre, '', telefono, email, tempPassword]
             );
             cliente_id = newClient.rows[0].id;
         } else {

@@ -11,7 +11,9 @@ const loginLimiter = rateLimit({
 });
 
 const registerSchema = {
+    username: { required: true, type: 'string', minLength: 3 },
     nombre: { required: true, type: 'string', minLength: 2 },
+    apellido: { required: true, type: 'string', minLength: 2 },
     telefono: { required: true, type: 'string', minLength: 7 },
     email: { required: true, type: 'email' },
     password: { required: true, type: 'string', minLength: 8 }

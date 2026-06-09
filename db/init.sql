@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS Inmobiliaria (
 
 CREATE TABLE IF NOT EXISTS Cliente (
     id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
     nombre VARCHAR(150) NOT NULL,
+    apellido VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -58,5 +60,13 @@ DO $$ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='propiedad' AND column_name='descripcion') THEN
         ALTER TABLE Propiedad ADD COLUMN descripcion TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cliente' AND column_name='username') THEN
+        ALTER TABLE Cliente ADD COLUMN username VARCHAR(50) UNIQUE;
+        UPDATE Cliente SET username = SPLIT_PART(email, '@', 1) WHERE username IS NULL;
+        ALTER TABLE Cliente ALTER COLUMN username SET NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cliente' AND column_name='apellido') THEN
+        ALTER TABLE Cliente ADD COLUMN apellido VARCHAR(150) NOT NULL DEFAULT '';
     END IF;
 END $$;
